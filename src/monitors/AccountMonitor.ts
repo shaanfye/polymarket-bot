@@ -18,12 +18,10 @@ export class AccountMonitor extends BaseMonitor {
   private accountRepo: TrackedAccountRepository;
   private tradeRepo: TradeRepository;
   private marketRepo: MarketRepository;
-  private config: AccountMonitorConfig;
   private lastCheckTime: Date;
 
   constructor(config: AccountMonitorConfig) {
     super();
-    this.config = config;
     this.enabled = config.enabled;
     this.dataClient = new DataApiClient();
     this.accountRepo = new TrackedAccountRepository();

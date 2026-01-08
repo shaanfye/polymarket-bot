@@ -7,7 +7,6 @@ export class WebhookService {
   private alertRepository: AlertRepository;
   private webhookUrl: string;
   private retryAttempts: number;
-  private timeoutMs: number;
 
   constructor(
     webhookUrl: string,
@@ -16,7 +15,6 @@ export class WebhookService {
   ) {
     this.webhookUrl = webhookUrl;
     this.retryAttempts = retryAttempts;
-    this.timeoutMs = timeoutMs;
     this.alertRepository = new AlertRepository();
 
     this.client = axios.create({

@@ -3,7 +3,7 @@ import { Alert } from '../types/alerts.js';
 import { DataApiClient } from '../api/DataApiClient.js';
 import { GammaApiClient } from '../api/GammaApiClient.js';
 import { MarketRepository } from '../db/repositories/MarketRepository.js';
-import { parseTradeSize, parseProbability } from '../api/types.js';
+import { parseProbability } from '../api/types.js';
 
 export interface TradeMonitorConfig {
   enabled: boolean;

@@ -1,11 +1,10 @@
 import { BaseMonitor } from './base/Monitor.js';
 import { Alert } from '../types/alerts.js';
 import { GammaApiClient } from '../api/GammaApiClient.js';
-import { DataApiClient } from '../api/DataApiClient.js';
 import { StatisticalAnalyzer } from '../services/StatisticalAnalyzer.js';
 import { TradeRepository } from '../db/repositories/TradeRepository.js';
 import { MarketRepository } from '../db/repositories/MarketRepository.js';
-import { parseTradeSize, parseVolume24hr } from '../api/types.js';
+import { parseVolume24hr } from '../api/types.js';
 
 export interface VolumeMonitorConfig {
   enabled: boolean;
@@ -17,7 +16,6 @@ export class VolumeMonitor extends BaseMonitor {
   name = 'VolumeMonitor';
 
   private gammaClient: GammaApiClient;
-  private dataClient: DataApiClient;
   private analyzer: StatisticalAnalyzer;
   private tradeRepo: TradeRepository;
   private marketRepo: MarketRepository;
@@ -28,7 +26,6 @@ export class VolumeMonitor extends BaseMonitor {
     this.config = config;
     this.enabled = config.enabled;
     this.gammaClient = new GammaApiClient();
-    this.dataClient = new DataApiClient();
     this.analyzer = new StatisticalAnalyzer();
     this.tradeRepo = new TradeRepository();
     this.marketRepo = new MarketRepository();

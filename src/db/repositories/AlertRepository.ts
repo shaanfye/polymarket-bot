@@ -1,6 +1,7 @@
 import { prisma } from '../client.js';
 import { Alert } from '@prisma/client';
 import { Alert as AlertType } from '../../types/alerts.js';
+import { Prisma } from '@prisma/client';
 
 export class AlertRepository {
   async create(alert: AlertType): Promise<Alert> {
@@ -12,7 +13,7 @@ export class AlertRepository {
           title: alert.title,
           data: alert.data,
           timestamp: alert.timestamp.toISOString(),
-        },
+        } as Prisma.InputJsonValue,
       },
     });
   }
