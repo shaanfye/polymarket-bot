@@ -1,0 +1,30 @@
+polling:
+  intervalMinutes: 1.5
+
+webhook:
+  url: "${WEBHOOK_URL}"
+  retryAttempts: 3
+  timeoutMs: 5000
+
+monitoring:
+  volumeOutlier:
+    enabled: true
+    stdDeviationThreshold: 2
+    timeWindowHours: 24
+
+  accountActivity:
+    enabled: true
+    pollIntervalMinutes: 1.5
+
+  marketProbability:
+    enabled: true
+    changeThresholdPercent: 5
+    updateIntervalMinutes: 10
+
+  tradeActivity:
+    enabled: true
+    largeTradeThreshold: 1000      # Alert on trades >$1000
+    whalePnlThreshold: 100000       # Track traders who make >$100k trades
+
+database:
+  url: "${DATABASE_URL}"

@@ -1,0 +1,54 @@
+{
+  "name": "polymarket-monitoring-bot",
+  "version": "1.0.0",
+  "description": "Modular Polymarket monitoring bot with webhook alerts for n8n",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "prisma generate && tsc",
+    "start": "node dist/index.js",
+    "deploy": "prisma migrate deploy && prisma generate && npm run start",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop polymarket-bot",
+    "pm2:restart": "pm2 restart polymarket-bot",
+    "pm2:logs": "pm2 logs polymarket-bot",
+    "pm2:status": "pm2 status",
+    "pm2:delete": "pm2 delete polymarket-bot",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
+  },
+  "keywords": [
+    "polymarket",
+    "monitoring",
+    "webhook",
+    "trading",
+    "alerts"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "js-yaml": "^4.1.0",
+    "node-cron": "^3.0.3",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.10.5",
+    "@types/node-cron": "^3.0.11",
+    "pm2": "^6.0.14",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

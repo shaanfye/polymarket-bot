@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Market {
+  id          String   @id @default(uuid())
+  conditionId String   @unique
+  slug        String   @unique
+  title       String
+  volume24hr  Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trades         Trade[]
+  priceSnapshots PriceSnapshot[]
+
+  @@map("markets")
+}
+
+model Trade {
+  id              String   @id @default(uuid())
+  transactionHash String   @unique
+  userAddress     String
+  marketId        String
+  market          Market   @relation(fields: [marketId], references: [id])
+  size            Float
+  usdcSize        Float
+  price           Float
+  side            String   // BUY or SELL
+  timestamp       DateTime
+  createdAt       DateTime @default(now())
+
+  @@index([marketId, timestamp])
+  @@index([userAddress, timestamp])
+  @@index([timestamp])
+  @@map("trades")
+}
+
+model PriceSnapshot {
+  id          String   @id @default(uuid())
+  marketId    String
+  market      Market   @relation(fields: [marketId], references: [id])
+  probability Float
+  timestamp   DateTime
+
+  @@index([marketId, timestamp])
+  @@map("price_snapshots")
+}
+
+model TrackedAccount {
+  id        String   @id @default(uuid())
+  address   String   @unique
+  name      String?
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("tracked_accounts")
+}
+
+model TrackedMarket {
+  id          String   @id @default(uuid())
+  conditionId String   @unique
+  name        String?
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("tracked_markets")
+}
+
+model Alert {
+  id          String    @id @default(uuid())
+  type        String    // VOLUME_OUTLIER, ACCOUNT_ACTIVITY, PROBABILITY_SHIFT, etc.
+  payload     Json
+  webhookSent Boolean   @default(false)
+  retryCount  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  sentAt      DateTime?
+
+  @@index([webhookSent, createdAt])
+  @@map("alerts")
+}

@@ -1,0 +1,20 @@
+# Tracked Accounts Configuration
+# Add wallet addresses you want to monitor for all trading activity
+
+accounts: []
+  # Example:
+  # - address: "0x1234567890abcdef1234567890abcdef12345678"
+  #   name: "Whale Trader"
+  #   enabled: true
+  #
+  # - address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+  #   name: "Notable Account"
+  #   enabled: true
+
+# Tracked Markets Configuration
+# Add condition IDs for markets you want to monitor for probability changes
+
+markets:
+  - conditionId: "0xd595eb9b81885ff018738300c79047e3ec89e87294424f57a29a7fa9162bf116"
+    name: "Will Trump acquire Greenland before 2027?"
+    enabled: true
