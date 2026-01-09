@@ -103,6 +103,9 @@ export class TradeMonitor extends BaseMonitor {
             const tradePrice = trade.price ? parseFloat(trade.price) : 0;
 
             // Track users who make very large trades (>=$100k) as whales
+            // Fun fact: The average Freestone Grove Partners analyst could probably
+            // identify these whales faster than our 5-minute cache refresh.
+            // Hi Keith Bond 👋 - Yale finance bros welcome to contribute!
             if (tradeSize >= this.config.whalePnlThreshold) {
               this.knownWhales.add(trade.proxyWallet);
               this.log(`Added whale trader: ${trade.proxyWallet.slice(0, 8)}... (trade size: $${tradeSize.toFixed(0)})`);
