@@ -6,7 +6,9 @@ export interface HolderInfo {
   address: string;
   name: string;
   amount: number;
-  pnl: number;
+  pnl: number;              // Total P&L (realized + unrealized)
+  realizedPnL: number;      // Locked in profits/losses
+  unrealizedPnL: number;    // Current open position P&L
 }
 
 export interface HolderDistribution {
@@ -79,6 +81,8 @@ export class SmartMoneyAnalyzer {
         name: h.pseudonym || h.name || `${h.proxyWallet.slice(0, 6)}...${h.proxyWallet.slice(-4)}`,
         amount: h.amount,
         pnl: 0, // Will be calculated separately in calculateSidePnL
+        realizedPnL: 0,
+        unrealizedPnL: 0,
       }));
 
       const noHolderInfo: HolderInfo[] = noHolders.map((h) => ({
@@ -86,6 +90,8 @@ export class SmartMoneyAnalyzer {
         name: h.pseudonym || h.name || `${h.proxyWallet.slice(0, 6)}...${h.proxyWallet.slice(-4)}`,
         amount: h.amount,
         pnl: 0,
+        realizedPnL: 0,
+        unrealizedPnL: 0,
       }));
 
       return {
@@ -119,11 +125,15 @@ export class SmartMoneyAnalyzer {
         distribution.yesHolders.map(async (holder) => {
           try {
             const pnl = await this.traderIntel.getTraderLifetimePnL(holder.address);
-            holder.pnl = pnl.totalPnl; // UPDATE the holder object
+            holder.pnl = pnl.totalPnl; // Total P&L
+            holder.realizedPnL = pnl.totalRealizedPnl; // Locked in
+            holder.unrealizedPnL = pnl.totalCashPnl; // At risk
             return pnl.totalPnl;
           } catch (error) {
             console.error(`Error fetching P&L for ${holder.address}:`, error);
             holder.pnl = 0;
+            holder.realizedPnL = 0;
+            holder.unrealizedPnL = 0;
             return 0;
           }
         })
@@ -134,11 +144,15 @@ export class SmartMoneyAnalyzer {
         distribution.noHolders.map(async (holder) => {
           try {
             const pnl = await this.traderIntel.getTraderLifetimePnL(holder.address);
-            holder.pnl = pnl.totalPnl; // UPDATE the holder object
+            holder.pnl = pnl.totalPnl; // Total P&L
+            holder.realizedPnL = pnl.totalRealizedPnl; // Locked in
+            holder.unrealizedPnL = pnl.totalCashPnl; // At risk
             return pnl.totalPnl;
           } catch (error) {
             console.error(`Error fetching P&L for ${holder.address}:`, error);
             holder.pnl = 0;
+            holder.realizedPnL = 0;
+            holder.unrealizedPnL = 0;
             return 0;
           }
         })

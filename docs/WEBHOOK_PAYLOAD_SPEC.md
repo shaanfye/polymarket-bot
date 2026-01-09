@@ -205,8 +205,10 @@ Most alerts include a `market` object:
         "topHolders": [{           // Top 20 holders on Yes side
           "address": string,
           "name": string,
-          "amount": number,        // Position size
-          "pnl": number            // Lifetime P&L
+          "amount": number,        // Position size in THIS market
+          "pnl": number,           // Total lifetime P&L (realized + unrealized)
+          "realizedPnL": number,   // Locked in profits/losses from closed trades
+          "unrealizedPnL": number  // Current P&L from open positions (at risk)
         }],
         "concentration": number,   // % held by top 5 (e.g., 68.5 = 68.5%)
         "totalAmount": number
