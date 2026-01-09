@@ -87,13 +87,9 @@ export class SmartMoneyMonitor extends BaseMonitor {
             continue;
           }
 
-          // Analyze holder distribution
-          const holderDistribution = await this.analyzer.analyzeHolderDistribution(
-            trackedMarket.conditionId
-          );
-
-          // Calculate side P&L
+          // Calculate side P&L (includes updated holder distribution with P&L)
           const sidePnL = await this.analyzer.calculateSidePnL(trackedMarket.conditionId);
+          const holderDistribution = sidePnL.distribution;
 
           // Get open interest
           let openInterest = 0;
@@ -117,11 +113,18 @@ export class SmartMoneyMonitor extends BaseMonitor {
                 );
                 if (marketVolume) {
                   liveVolume = marketVolume.value;
+                  this.log(`Live volume for ${trackedMarket.name}: $${liveVolume.toFixed(0)}`);
+                } else {
+                  this.log(`Market ${trackedMarket.conditionId} not found in volume data`);
                 }
+              } else {
+                this.log(`No volume data returned for eventId ${trackedMarket.eventId}`);
               }
             } catch (error) {
-              this.log(`Could not fetch live volume: ${error}`);
+              this.error(`Could not fetch live volume for eventId ${trackedMarket.eventId}:`, error);
             }
+          } else {
+            this.log(`No eventId configured for market ${trackedMarket.name}, skipping live volume`);
           }
 
           const currentProbability = parseProbability(gammaMarket.outcomePrices[0]);

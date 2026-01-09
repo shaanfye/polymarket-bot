@@ -24,6 +24,7 @@ export interface SidePnLAnalysis {
   yesSideAvgPnL: number;
   noSideAvgPnL: number;
   smarterSide: 'YES' | 'NO';
+  distribution: HolderDistribution; // Include the updated distribution
 }
 
 export class SmartMoneyAnalyzer {
@@ -113,19 +114,33 @@ export class SmartMoneyAnalyzer {
       // Get holder distribution first
       const distribution = await this.analyzeHolderDistribution(conditionId);
 
-      // Fetch P&L for all Yes holders
+      // Fetch P&L for all Yes holders and UPDATE the holder objects
       const yesPnLs = await Promise.all(
         distribution.yesHolders.map(async (holder) => {
-          const pnl = await this.traderIntel.getTraderLifetimePnL(holder.address);
-          return pnl.totalPnl;
+          try {
+            const pnl = await this.traderIntel.getTraderLifetimePnL(holder.address);
+            holder.pnl = pnl.totalPnl; // UPDATE the holder object
+            return pnl.totalPnl;
+          } catch (error) {
+            console.error(`Error fetching P&L for ${holder.address}:`, error);
+            holder.pnl = 0;
+            return 0;
+          }
         })
       );
 
-      // Fetch P&L for all No holders
+      // Fetch P&L for all No holders and UPDATE the holder objects
       const noPnLs = await Promise.all(
         distribution.noHolders.map(async (holder) => {
-          const pnl = await this.traderIntel.getTraderLifetimePnL(holder.address);
-          return pnl.totalPnl;
+          try {
+            const pnl = await this.traderIntel.getTraderLifetimePnL(holder.address);
+            holder.pnl = pnl.totalPnl; // UPDATE the holder object
+            return pnl.totalPnl;
+          } catch (error) {
+            console.error(`Error fetching P&L for ${holder.address}:`, error);
+            holder.pnl = 0;
+            return 0;
+          }
         })
       );
 
@@ -146,15 +161,18 @@ export class SmartMoneyAnalyzer {
         yesSideAvgPnL,
         noSideAvgPnL,
         smarterSide,
+        distribution, // Return the updated distribution with P&L
       };
     } catch (error) {
       console.error(`Error calculating side P&L for market ${conditionId}:`, error);
+      const emptyDist = await this.analyzeHolderDistribution(conditionId);
       return {
         yesSidePnL: 0,
         noSidePnL: 0,
         yesSideAvgPnL: 0,
         noSideAvgPnL: 0,
         smarterSide: 'YES',
+        distribution: emptyDist,
       };
     }
   }
