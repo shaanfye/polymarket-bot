@@ -78,7 +78,7 @@ export class SmartMoneyAnalyzer {
       // Convert to HolderInfo format (without P&L for now)
       const yesHolderInfo: HolderInfo[] = yesHolders.map((h) => ({
         address: h.proxyWallet,
-        name: h.pseudonym || h.name || `${h.proxyWallet.slice(0, 6)}...${h.proxyWallet.slice(-4)}`,
+        name: h.name || h.pseudonym || `${h.proxyWallet.slice(0, 6)}...${h.proxyWallet.slice(-4)}`,
         amount: h.amount,
         pnl: 0, // Will be calculated separately in calculateSidePnL
         realizedPnL: 0,
@@ -87,7 +87,7 @@ export class SmartMoneyAnalyzer {
 
       const noHolderInfo: HolderInfo[] = noHolders.map((h) => ({
         address: h.proxyWallet,
-        name: h.pseudonym || h.name || `${h.proxyWallet.slice(0, 6)}...${h.proxyWallet.slice(-4)}`,
+        name: h.name || h.pseudonym || `${h.proxyWallet.slice(0, 6)}...${h.proxyWallet.slice(-4)}`,
         amount: h.amount,
         pnl: 0,
         realizedPnL: 0,
