@@ -212,12 +212,17 @@ export class TradeMonitor extends BaseMonitor {
 
       return traderData;
     } catch (error) {
-      console.error(`Error fetching trader data for ${userAddress}:`, error);
+      this.error(`Error fetching trader data for ${userAddress}:`, error);
       return {
         address: userAddress,
         name: `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`,
         lifetimePnL: 0,
+        realizedPnL: 0,
+        unrealizedPnL: 0,
         positionSize: 0,
+        positionValue: 0,
+        openPositions: 0,
+        closedPositions: 0,
       };
     }
   }

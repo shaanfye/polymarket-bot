@@ -35,6 +35,13 @@ export const ConfigSchema = z.object({
       whalePnlThreshold: 100000,
       includeTraderIntel: true,
     }),
+    smartMoney: z.object({
+      enabled: z.boolean().default(true),
+      intervalMinutes: z.number().min(15).max(1440).default(60),
+    }).default({
+      enabled: true,
+      intervalMinutes: 60,
+    }),
   }),
   database: z.object({
     url: z.string(),

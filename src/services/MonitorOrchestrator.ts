@@ -3,6 +3,7 @@ import { VolumeMonitor } from '../monitors/VolumeMonitor.js';
 import { AccountMonitor } from '../monitors/AccountMonitor.js';
 import { MarketMonitor } from '../monitors/MarketMonitor.js';
 import { TradeMonitor } from '../monitors/TradeMonitor.js';
+import { SmartMoneyMonitor } from '../monitors/SmartMoneyMonitor.js';
 import { WebhookService } from './WebhookService.js';
 import { AlertRepository } from '../db/repositories/AlertRepository.js';
 import { Alert } from '../types/alerts.js';
@@ -53,7 +54,12 @@ export class MonitorOrchestrator {
       includeTraderIntel: config.monitoring.tradeActivity.includeTraderIntel,
     });
 
-    this.monitors = [volumeMonitor, accountMonitor, marketMonitor, tradeMonitor];
+    const smartMoneyMonitor = new SmartMoneyMonitor({
+      enabled: config.monitoring.smartMoney.enabled,
+      intervalMinutes: config.monitoring.smartMoney.intervalMinutes,
+    });
+
+    this.monitors = [volumeMonitor, accountMonitor, marketMonitor, tradeMonitor, smartMoneyMonitor];
 
     const enabledMonitors = this.monitors.filter((m) => m.enabled);
     console.log(

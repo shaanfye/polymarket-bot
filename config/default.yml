@@ -27,5 +27,9 @@ monitoring:
     whalePnlThreshold: 100000       # Track traders who make >=$100k trades
     includeTraderIntel: true        # Fetch trader P&L and position
 
+  smartMoney:
+    enabled: true
+    intervalMinutes: 60             # Send reports every 60 minutes
+
 database:
   url: "${DATABASE_URL}"
