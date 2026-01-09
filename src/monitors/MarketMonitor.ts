@@ -1,33 +1,35 @@
 import { BaseMonitor } from './base/Monitor.js';
 import { Alert } from '../types/alerts.js';
 import { GammaApiClient } from '../api/GammaApiClient.js';
+import { DataApiClient } from '../api/DataApiClient.js';
 import { MarketRepository } from '../db/repositories/MarketRepository.js';
 import { PriceSnapshotRepository } from '../db/repositories/PriceSnapshotRepository.js';
 import { parseProbability, parseVolume24hr } from '../api/types.js';
 
 export interface MarketMonitorConfig {
   enabled: boolean;
-  changeThresholdPercent: number;
-  updateIntervalMinutes: number;
+  changeThresholdPercent: number; // e.g., 1 for 1% change
+  trackLiveVolume: boolean;
 }
 
 export class MarketMonitor extends BaseMonitor {
   name = 'MarketMonitor';
 
   private gammaClient: GammaApiClient;
+  private dataClient: DataApiClient;
   private marketRepo: MarketRepository;
   private snapshotRepo: PriceSnapshotRepository;
   private config: MarketMonitorConfig;
-  private lastUpdateTime: Date;
+  private lastVolumes: Map<string, number> = new Map(); // conditionId -> last volume
 
   constructor(config: MarketMonitorConfig) {
     super();
     this.config = config;
     this.enabled = config.enabled;
     this.gammaClient = new GammaApiClient();
+    this.dataClient = new DataApiClient();
     this.marketRepo = new MarketRepository();
     this.snapshotRepo = new PriceSnapshotRepository();
-    this.lastUpdateTime = new Date(0);
   }
 
   async run(): Promise<Alert[]> {
@@ -37,13 +39,6 @@ export class MarketMonitor extends BaseMonitor {
     }
 
     const now = new Date();
-    const minutesSinceLastUpdate =
-      (now.getTime() - this.lastUpdateTime.getTime()) / (1000 * 60);
-
-    if (minutesSinceLastUpdate < this.config.updateIntervalMinutes) {
-      return [];
-    }
-
     this.log('Starting tracked market monitoring...');
 
     try {
@@ -95,16 +90,37 @@ export class MarketMonitor extends BaseMonitor {
 
           const currentProbability = parseProbability(gammaMarket.outcomePrices[0]);
 
+          // Track live volume if enabled
+          let currentVolume = parseVolume24hr(gammaMarket);
+          let volumeChange = 0;
+
+          if (this.config.trackLiveVolume && trackedMarket.eventId) {
+            try {
+              const liveVolumeData = await this.dataClient.getLiveVolume(trackedMarket.eventId);
+              if (liveVolumeData) {
+                // Find volume for this specific market
+                const marketVolume = liveVolumeData.markets.find(
+                  (m) => m.market === trackedMarket.conditionId
+                );
+                if (marketVolume) {
+                  currentVolume = marketVolume.value;
+                  const previousVolume = this.lastVolumes.get(trackedMarket.conditionId) || 0;
+                  volumeChange = currentVolume - previousVolume;
+                  this.lastVolumes.set(trackedMarket.conditionId, currentVolume);
+                }
+              }
+            } catch (error) {
+              this.error(`Error fetching live volume for market ${trackedMarket.conditionId}:`, error);
+            }
+          }
+
           await this.snapshotRepo.create({
             marketId: dbMarket.id,
             probability: currentProbability,
             timestamp: now,
           });
 
-          const previousSnapshot = await this.snapshotRepo.getPreviousSnapshot(
-            dbMarket.id,
-            this.config.updateIntervalMinutes
-          );
+          const previousSnapshot = await this.snapshotRepo.getLatestForMarket(dbMarket.id);
 
           if (previousSnapshot) {
             const probabilityChange = Math.abs(
@@ -136,40 +152,18 @@ export class MarketMonitor extends BaseMonitor {
                     change: probabilityChange,
                     percentChange,
                   },
-                  volume24hr: parseVolume24hr(gammaMarket),
+                  volume: {
+                    current: currentVolume,
+                    change: volumeChange,
+                  },
                 },
               });
             }
-          }
-
-          const shouldSendUpdate =
-            minutesSinceLastUpdate >= this.config.updateIntervalMinutes;
-
-          if (shouldSendUpdate) {
-            alerts.push({
-              type: 'MARKET_UPDATE',
-              severity: 'low',
-              title: `Market update: ${gammaMarket.question}`,
-              timestamp: now,
-              data: {
-                market: {
-                  slug: gammaMarket.slug,
-                  title: gammaMarket.question,
-                  conditionId: trackedMarket.conditionId,
-                  outcomes: gammaMarket.outcomes,
-                },
-                probability: currentProbability,
-                outcomePrices: gammaMarket.outcomePrices.map(parseProbability),
-                volume24hr: parseVolume24hr(gammaMarket),
-              },
-            });
           }
         } catch (error) {
           this.error(`Error monitoring market ${trackedMarket.name || trackedMarket.conditionId}:`, error);
         }
       }
-
-      this.lastUpdateTime = now;
 
       this.log(`Market monitor completed. Generated ${alerts.length} alerts.`);
       return alerts;

@@ -21,17 +21,19 @@ export const ConfigSchema = z.object({
     }),
     marketProbability: z.object({
       enabled: z.boolean().default(true),
-      changeThresholdPercent: z.number().min(1).max(50).default(5),
-      updateIntervalMinutes: z.number().min(1).max(60).default(10),
+      changeThresholdPercent: z.number().min(1).max(50).default(1),
+      trackLiveVolume: z.boolean().default(true),
     }),
     tradeActivity: z.object({
       enabled: z.boolean().default(true),
-      largeTradeThreshold: z.number().min(100).max(1000000).default(1000),
+      largeTradeThreshold: z.number().min(10).max(1000000).default(10),
       whalePnlThreshold: z.number().min(10000).max(10000000).default(100000),
+      includeTraderIntel: z.boolean().default(true),
     }).default({
       enabled: true,
-      largeTradeThreshold: 1000,
+      largeTradeThreshold: 10,
       whalePnlThreshold: 100000,
+      includeTraderIntel: true,
     }),
   }),
   database: z.object({
@@ -51,6 +53,7 @@ export const TrackedConfigSchema = z.object({
     z.object({
       conditionId: z.string(),
       name: z.string().optional(),
+      eventId: z.number().nullable().optional(),
       enabled: z.boolean().default(true),
     })
   ).default([]),

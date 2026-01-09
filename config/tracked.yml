@@ -17,4 +17,5 @@ accounts: []
 markets:
   - conditionId: "0xd595eb9b81885ff018738300c79047e3ec89e87294424f57a29a7fa9162bf116"
     name: "Will Trump acquire Greenland before 2027?"
+    eventId: null  # Required for live-volume tracking - get from market URL or API
     enabled: true

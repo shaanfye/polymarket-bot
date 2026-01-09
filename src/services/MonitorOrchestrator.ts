@@ -43,13 +43,14 @@ export class MonitorOrchestrator {
     const marketMonitor = new MarketMonitor({
       enabled: config.monitoring.marketProbability.enabled,
       changeThresholdPercent: config.monitoring.marketProbability.changeThresholdPercent,
-      updateIntervalMinutes: config.monitoring.marketProbability.updateIntervalMinutes,
+      trackLiveVolume: config.monitoring.marketProbability.trackLiveVolume,
     });
 
     const tradeMonitor = new TradeMonitor({
       enabled: config.monitoring.tradeActivity.enabled,
       largeTradeThreshold: config.monitoring.tradeActivity.largeTradeThreshold,
       whalePnlThreshold: config.monitoring.tradeActivity.whalePnlThreshold,
+      includeTraderIntel: config.monitoring.tradeActivity.includeTraderIntel,
     });
 
     this.monitors = [volumeMonitor, accountMonitor, marketMonitor, tradeMonitor];

@@ -96,6 +96,96 @@ export const ClobPriceSchema = z.object({
 export type ClobPrice = z.infer<typeof ClobPriceSchema>;
 
 // ============================================================================
+// Data API Types - Positions & Holders
+// ============================================================================
+
+export const UserPositionSchema = z.object({
+  proxyWallet: z.string(),
+  asset: z.string(),
+  conditionId: z.string(),
+  size: z.number(),
+  avgPrice: z.number(),
+  initialValue: z.number(),
+  currentValue: z.number(),
+  cashPnl: z.number(),
+  percentPnl: z.number(),
+  totalBought: z.number(),
+  realizedPnl: z.number(),
+  percentRealizedPnl: z.number(),
+  curPrice: z.number(),
+  redeemable: z.boolean(),
+  mergeable: z.boolean(),
+  title: z.string(),
+  slug: z.string(),
+  icon: z.string().optional(),
+  eventSlug: z.string().optional(),
+  outcome: z.string(),
+  outcomeIndex: z.number(),
+  oppositeOutcome: z.string().optional(),
+  oppositeAsset: z.string().optional(),
+  endDate: z.string().optional(),
+  negativeRisk: z.boolean().optional(),
+});
+
+export const ClosedPositionSchema = z.object({
+  proxyWallet: z.string(),
+  asset: z.string(),
+  conditionId: z.string(),
+  avgPrice: z.number(),
+  totalBought: z.number(),
+  realizedPnl: z.number(),
+  curPrice: z.number(),
+  timestamp: z.number(),
+  title: z.string(),
+  slug: z.string(),
+  icon: z.string().optional(),
+  eventSlug: z.string().optional(),
+  outcome: z.string(),
+  outcomeIndex: z.number(),
+  oppositeOutcome: z.string().optional(),
+  oppositeAsset: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
+export const HolderSchema = z.object({
+  proxyWallet: z.string(),
+  bio: z.string().optional(),
+  asset: z.string(),
+  pseudonym: z.string().optional(),
+  amount: z.number(),
+  displayUsernamePublic: z.boolean().optional(),
+  outcomeIndex: z.number(),
+  name: z.string().optional(),
+  profileImage: z.string().optional(),
+  profileImageOptimized: z.string().optional(),
+});
+
+export const MarketHoldersSchema = z.object({
+  token: z.string(),
+  holders: z.array(HolderSchema),
+});
+
+export const OpenInterestSchema = z.object({
+  market: z.string(),
+  value: z.number(),
+});
+
+export const LiveVolumeSchema = z.object({
+  total: z.number(),
+  markets: z.array(z.object({
+    market: z.string(),
+    value: z.number(),
+  })),
+});
+
+export type UserPosition = z.infer<typeof UserPositionSchema>;
+export type ClosedPosition = z.infer<typeof ClosedPositionSchema>;
+export type Holder = z.infer<typeof HolderSchema>;
+export type MarketHolders = z.infer<typeof MarketHoldersSchema>;
+export type OpenInterestData = z.infer<typeof OpenInterestSchema>;
+export type LiveVolumeData = z.infer<typeof LiveVolumeSchema>;
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 

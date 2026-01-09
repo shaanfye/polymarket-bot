@@ -1,5 +1,18 @@
 import axios, { AxiosInstance } from 'axios';
-import { DataApiActivityResponseSchema, DataApiActivity } from './types.js';
+import {
+  DataApiActivityResponseSchema,
+  DataApiActivity,
+  UserPositionSchema,
+  UserPosition,
+  ClosedPositionSchema,
+  ClosedPosition,
+  MarketHoldersSchema,
+  MarketHolders,
+  OpenInterestSchema,
+  OpenInterestData,
+  LiveVolumeSchema,
+  LiveVolumeData,
+} from './types.js';
 
 export interface ActivityQueryParams {
   user: string;
@@ -147,6 +160,128 @@ export class DataApiClient {
     } catch (error) {
       console.error(`Error fetching trades for market ${conditionId}:`, error);
       return [];
+    }
+  }
+
+  // New API Methods for Smart Money Analysis
+
+  async getUserPositions(
+    user: string,
+    options?: {
+      market?: string;
+      limit?: number;
+      sortBy?: 'CASHPNL' | 'PERCENTPNL' | 'TOKENS';
+    }
+  ): Promise<UserPosition[]> {
+    try {
+      const queryParams: Record<string, unknown> = {
+        user,
+        limit: options?.limit ?? 100,
+      };
+
+      if (options?.market) {
+        queryParams.market = options.market;
+      }
+
+      if (options?.sortBy) {
+        queryParams.sortBy = options.sortBy;
+      }
+
+      const response = await this.client.get('/positions', {
+        params: queryParams,
+      });
+
+      const positions = UserPositionSchema.array().parse(response.data);
+      return positions;
+    } catch (error) {
+      console.error(`Error fetching positions for user ${user}:`, error);
+      return [];
+    }
+  }
+
+  async getUserClosedPositions(
+    user: string,
+    options?: {
+      market?: string;
+      limit?: number;
+      sortBy?: 'REALIZEDPNL' | 'TIMESTAMP';
+    }
+  ): Promise<ClosedPosition[]> {
+    try {
+      const queryParams: Record<string, unknown> = {
+        user,
+        limit: options?.limit ?? 50,
+      };
+
+      if (options?.market) {
+        queryParams.market = options.market;
+      }
+
+      if (options?.sortBy) {
+        queryParams.sortBy = options.sortBy;
+      }
+
+      const response = await this.client.get('/v1/closed-positions', {
+        params: queryParams,
+      });
+
+      const closedPositions = ClosedPositionSchema.array().parse(response.data);
+      return closedPositions;
+    } catch (error) {
+      console.error(`Error fetching closed positions for user ${user}:`, error);
+      return [];
+    }
+  }
+
+  async getMarketHolders(
+    conditionId: string,
+    limit: number = 20
+  ): Promise<MarketHolders[]> {
+    try {
+      const response = await this.client.get('/holders', {
+        params: {
+          market: conditionId,
+          limit: Math.min(limit, 20), // Cap at 20 per API limit
+        },
+      });
+
+      const holders = MarketHoldersSchema.array().parse(response.data);
+      return holders;
+    } catch (error) {
+      console.error(`Error fetching holders for market ${conditionId}:`, error);
+      return [];
+    }
+  }
+
+  async getOpenInterest(markets: string[]): Promise<OpenInterestData[]> {
+    try {
+      const response = await this.client.get('/oi', {
+        params: {
+          market: markets.join(','),
+        },
+      });
+
+      const openInterest = OpenInterestSchema.array().parse(response.data);
+      return openInterest;
+    } catch (error) {
+      console.error(`Error fetching open interest for markets:`, error);
+      return [];
+    }
+  }
+
+  async getLiveVolume(eventId: number): Promise<LiveVolumeData | null> {
+    try {
+      const response = await this.client.get('/live-volume', {
+        params: {
+          id: eventId,
+        },
+      });
+
+      const volumeData = LiveVolumeSchema.array().parse(response.data);
+      return volumeData[0] || null;
+    } catch (error) {
+      console.error(`Error fetching live volume for event ${eventId}:`, error);
+      return null;
     }
   }
 }

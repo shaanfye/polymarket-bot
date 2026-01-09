@@ -66,6 +66,7 @@ model TrackedMarket {
   id          String   @id @default(uuid())
   conditionId String   @unique
   name        String?
+  eventId     Int?     // Required for live-volume API
   enabled     Boolean  @default(true)
   createdAt   DateTime @default(now())
 
@@ -83,4 +84,33 @@ model Alert {
 
   @@index([webhookSent, createdAt])
   @@map("alerts")
+}
+
+model MarketSnapshot {
+  id               String   @id @default(uuid())
+  conditionId      String
+  snapshotTime     DateTime @default(now())
+
+  // Open Interest
+  openInterest     Float
+
+  // Volume
+  liveVolume       Float
+
+  // Holder Distribution
+  yesHolders       Int      // Count of Yes holders
+  noHolders        Int      // Count of No holders
+  yesConcentration Float    // % held by top 5 Yes
+  noConcentration  Float    // % held by top 5 No
+
+  // P&L by Side
+  yesSidePnL       Float    // Cumulative P&L of top Yes holders
+  noSidePnL        Float    // Cumulative P&L of top No holders
+
+  // Probability
+  probability      Float
+
+  @@index([conditionId, snapshotTime])
+  @@index([snapshotTime])
+  @@map("market_snapshots")
 }

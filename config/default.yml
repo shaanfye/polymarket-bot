@@ -18,13 +18,14 @@ monitoring:
 
   marketProbability:
     enabled: true
-    changeThresholdPercent: 5
-    updateIntervalMinutes: 10
+    changeThresholdPercent: 1      # Alert on >1% probability shifts
+    trackLiveVolume: true           # Use live-volume endpoint
 
   tradeActivity:
     enabled: true
-    largeTradeThreshold: 1000      # Alert on trades >$1000
-    whalePnlThreshold: 100000       # Track traders who make >$100k trades
+    largeTradeThreshold: 10         # Alert on trades >=$10
+    whalePnlThreshold: 100000       # Track traders who make >=$100k trades
+    includeTraderIntel: true        # Fetch trader P&L and position
 
 database:
   url: "${DATABASE_URL}"

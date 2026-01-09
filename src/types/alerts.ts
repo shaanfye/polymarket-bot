@@ -5,7 +5,8 @@ export type AlertType =
   | 'NEW_ACCOUNT'
   | 'MARKET_UPDATE'
   | 'LARGE_TRADE'
-  | 'WHALE_ACTIVITY';
+  | 'WHALE_ACTIVITY'
+  | 'SMART_MONEY_REPORT';
 
 export type AlertSeverity = 'low' | 'medium' | 'high';
 

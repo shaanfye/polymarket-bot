@@ -3,12 +3,14 @@ import { Alert } from '../types/alerts.js';
 import { DataApiClient } from '../api/DataApiClient.js';
 import { GammaApiClient } from '../api/GammaApiClient.js';
 import { MarketRepository } from '../db/repositories/MarketRepository.js';
+import { TraderIntelligenceService } from '../services/TraderIntelligenceService.js';
 import { parseProbability } from '../api/types.js';
 
 export interface TradeMonitorConfig {
   enabled: boolean;
-  largeTradeThreshold: number; // e.g., 1000 USDC
-  whalePnlThreshold: number;   // e.g., 100000 USDC
+  largeTradeThreshold: number;     // e.g., 10 USDC
+  whalePnlThreshold: number;       // e.g., 100000 USDC
+  includeTraderIntel: boolean;     // Fetch trader P&L and position
 }
 
 export class TradeMonitor extends BaseMonitor {
@@ -17,9 +19,11 @@ export class TradeMonitor extends BaseMonitor {
   private dataClient: DataApiClient;
   private gammaClient: GammaApiClient;
   private marketRepo: MarketRepository;
+  private traderIntel: TraderIntelligenceService;
   private config: TradeMonitorConfig;
   private lastProcessedTrades: Map<string, number> = new Map(); // conditionId -> last timestamp
   private knownWhales: Set<string> = new Set(); // Track large traders
+  private traderCache: Map<string, any> = new Map(); // Cache trader data during run
 
   constructor(config: TradeMonitorConfig) {
     super();
@@ -28,6 +32,7 @@ export class TradeMonitor extends BaseMonitor {
     this.dataClient = new DataApiClient();
     this.gammaClient = new GammaApiClient();
     this.marketRepo = new MarketRepository();
+    this.traderIntel = new TraderIntelligenceService();
   }
 
   async run(): Promise<Alert[]> {
@@ -48,6 +53,9 @@ export class TradeMonitor extends BaseMonitor {
       }
 
       this.log(`Monitoring trades for ${trackedMarkets.length} markets...`);
+
+      // Clear trader cache for this run
+      this.traderCache.clear();
 
       for (const trackedMarket of trackedMarkets) {
         try {
@@ -100,48 +108,26 @@ export class TradeMonitor extends BaseMonitor {
               this.log(`Added whale trader: ${trade.proxyWallet.slice(0, 8)}... (trade size: $${tradeSize.toFixed(0)})`);
             }
 
-            // Check for whale activity - ANY trade by a known whale
-            const isWhale = this.knownWhales.has(trade.proxyWallet);
-            const outcome = trade.outcome || gammaMarket.outcomes[trade.outcomeIndex || 0];
-            if (isWhale) {
-              alerts.push({
-                type: 'WHALE_ACTIVITY',
-                severity: tradeSize >= 50000 ? 'high' : tradeSize >= 10000 ? 'medium' : 'low',
-                title: `Whale trader active on ${gammaMarket.question}`,
-                timestamp: new Date(),
-                data: {
-                  market: {
-                    slug: gammaMarket.slug,
-                    title: gammaMarket.question,
-                    conditionId: trackedMarket.conditionId,
-                    outcomes: gammaMarket.outcomes,
-                  },
-                  trade: {
-                    size: tradeSize,
-                    side: trade.side,
-                    outcome,
-                    price: tradePrice,
-                    userAddress: trade.proxyWallet,
-                    transactionHash: trade.transactionHash,
-                    timestamp: new Date(trade.timestamp * 1000).toISOString(),
-                  },
-                  currentProbability,
-                  outcomePrices: gammaMarket.outcomePrices.map(parseProbability),
-                  isKnownWhale: true,
-                },
-              });
+            // Check for trades >= threshold ($10 by default)
+            if (tradeSize >= this.config.largeTradeThreshold) {
+              const isWhale = this.knownWhales.has(trade.proxyWallet);
+              const outcome = trade.outcome || gammaMarket.outcomes[trade.outcomeIndex || 0];
 
-              this.log(
-                `Whale trade detected: $${tradeSize.toFixed(0)} ${trade.side} by ${trade.proxyWallet.slice(0, 8)}...`
-              );
-            }
+              // Get trader intelligence if enabled
+              let traderData = null;
+              if (this.config.includeTraderIntel) {
+                traderData = await this.getTraderData(trade.proxyWallet, trackedMarket.conditionId);
+              }
 
-            // Check for large trades (>$1000)
-            if (tradeSize >= this.config.largeTradeThreshold && !isWhale) {
+              const alertType = isWhale ? 'WHALE_ACTIVITY' : 'LARGE_TRADE';
+              const title = isWhale
+                ? `Whale trader active on ${gammaMarket.question}`
+                : `Trade on ${gammaMarket.question}`;
+
               alerts.push({
-                type: 'LARGE_TRADE',
+                type: alertType,
                 severity: this.calculateTradeSeverity(tradeSize),
-                title: `Large ${trade.side} trade on ${gammaMarket.question}`,
+                title,
                 timestamp: new Date(),
                 data: {
                   market: {
@@ -159,13 +145,17 @@ export class TradeMonitor extends BaseMonitor {
                     transactionHash: trade.transactionHash,
                     timestamp: new Date(trade.timestamp * 1000).toISOString(),
                   },
+                  trader: traderData,
                   currentProbability,
                   outcomePrices: gammaMarket.outcomePrices.map(parseProbability),
+                  isKnownWhale: isWhale,
                 },
               });
 
               this.log(
-                `Large trade detected: $${tradeSize.toFixed(0)} ${trade.side} on ${gammaMarket.slug}`
+                `${isWhale ? 'Whale' : 'Trade'}: $${tradeSize.toFixed(2)} ${trade.side} on ${gammaMarket.slug}${
+                  traderData ? ` (P&L: $${traderData.lifetimePnL.toFixed(0)})` : ''
+                }`
               );
             }
           }
@@ -188,9 +178,51 @@ export class TradeMonitor extends BaseMonitor {
     }
   }
 
+  private async getTraderData(userAddress: string, conditionId: string): Promise<any> {
+    // Check cache first
+    if (this.traderCache.has(userAddress)) {
+      return this.traderCache.get(userAddress);
+    }
+
+    try {
+      const [pnl, position] = await Promise.all([
+        this.traderIntel.getTraderLifetimePnL(userAddress),
+        this.traderIntel.getTraderPosition(userAddress, conditionId),
+      ]);
+
+      const name = await this.traderIntel.getTraderName(userAddress);
+
+      const traderData = {
+        address: userAddress,
+        name,
+        lifetimePnL: pnl.totalPnl,
+        realizedPnL: pnl.totalRealizedPnl,
+        unrealizedPnL: pnl.totalCashPnl,
+        positionSize: position?.size || 0,
+        positionValue: position?.currentValue || 0,
+        openPositions: pnl.openPositionsCount,
+        closedPositions: pnl.closedPositionsCount,
+      };
+
+      // Cache for this run
+      this.traderCache.set(userAddress, traderData);
+
+      return traderData;
+    } catch (error) {
+      console.error(`Error fetching trader data for ${userAddress}:`, error);
+      return {
+        address: userAddress,
+        name: `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`,
+        lifetimePnL: 0,
+        positionSize: 0,
+      };
+    }
+  }
+
   private calculateTradeSeverity(size: number): 'low' | 'medium' | 'high' {
     if (size > 50000) return 'high';
     if (size > 10000) return 'medium';
+    if (size > 1000) return 'medium';
     return 'low';
   }
 }
